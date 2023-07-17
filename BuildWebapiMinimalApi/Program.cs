@@ -1,12 +1,13 @@
+using BuildWebapiMinimalApi.Data;
 using Microsoft.EntityFrameworkCore;
 using BuildWebapiMinimalApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString = builder.Configuration.GetConnectionString("Pizzas") ?? "Data Source=Pizzas.db";
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddDbContext<PizzaDb>(options => 
-    options.UseInMemoryDatabase("items")
-    );
+builder.Services.AddSqlite<PizzaContext>(connectionString);
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new()
@@ -26,16 +27,16 @@ app.UseSwaggerUI(c =>
 });
 
 app.MapGet("/", () => "Hello World!");
-app.MapGet("/pizzas", async (PizzaDb db) => await db.Pizzas.ToListAsync());
-app.MapPost("/pizzas", async (PizzaDb db, Pizza pizza) =>
+app.MapGet("/pizzas", async (PizzaContext db) => await db.Pizzas.ToListAsync());
+app.MapPost("/pizzas", async (PizzaContext db, Pizza pizza) =>
 {
     await db.Pizzas.AddAsync(pizza);
     await db.SaveChangesAsync();
     
     return Results.Created($"/pizzas/{pizza.Id}", pizza);
 });
-app.MapGet("/pizza/{id:int}", async (PizzaDb db, int id) => await db.Pizzas.FindAsync(id));
-app.MapPut("/pizza/{id:int}", async (PizzaDb db, Pizza updatepizza, int id) =>
+app.MapGet("/pizza/{id:int}", async (PizzaContext db, int id) => await db.Pizzas.FindAsync(id));
+app.MapPut("/pizza/{id:int}", async (PizzaContext db, Pizza updatepizza, int id) =>
 {
     var pizza = await db.Pizzas.FindAsync(id);
     if (pizza is null) return Results.NotFound();
@@ -45,7 +46,7 @@ app.MapPut("/pizza/{id:int}", async (PizzaDb db, Pizza updatepizza, int id) =>
     
     return Results.Ok(pizza);
 });
-app.MapDelete("/pizzas/{id:int}", async (PizzaDb db, int id) =>
+app.MapDelete("/pizzas/{id:int}", async (PizzaContext db, int id) =>
 {
     var pizza = await db.Pizzas.FindAsync(id);
     if (pizza is null) return Results.NotFound();
